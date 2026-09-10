@@ -345,3 +345,166 @@ Tags: woocommerce, corporate, ecommerce, responsive, blue, black, green, white, 
 	    margin-right: 7px;
     margin-top: -182px !important;
 }
+
+/* ============================================================
+   CAREER OPENINGS CARDS & GRID
+   ============================================================ */
+.career-openings-grid {
+	display: grid;
+	grid-template-columns: repeat(3, 1fr);
+	gap: 30px;
+	width: 100%;
+	margin-top: 20px;
+}
+
+.career-card {
+	background: #ffffff;
+	border-radius: 20px;
+	box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+	padding: 30px;
+	display: flex;
+	flex-direction: column;
+	justify-content: space-between;
+	transition: box-shadow 0.3s ease, transform 0.2s ease;
+	position: relative;
+	box-sizing: border-box;
+}
+
+.career-card:hover {
+	box-shadow: 0 0 20px rgba(0, 0, 0, 0.15);
+	transform: translateY(-2px);
+}
+
+.career-card-title {
+	color: #0066ff !important;
+	font-size: 24px !important;
+	font-weight: 600 !important;
+	line-height: 32px !important;
+	margin: 0 0 12px 0 !important;
+	padding: 0 !important;
+}
+
+.career-card-divider {
+	width: 100%;
+	height: 1px;
+	background-color: #BCBCBC;
+	margin: 0 0 16px 0;
+}
+
+.career-card-work {
+	font-size: 15px;
+	margin-bottom: 12px;
+	color: #475569;
+}
+
+.career-card-work .career-label,
+.career-card-meta-row .career-label {
+	font-weight: 700;
+	color: #1e293b;
+	margin-right: 4px;
+}
+
+.career-card-work .career-val,
+.career-card-meta-row .career-val {
+	color: #475569;
+	font-weight: 500;
+}
+
+.career-card-meta-row {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	flex-wrap: wrap;
+	gap: 12px;
+	margin-bottom: 16px;
+	font-size: 15px;
+}
+
+.career-meta-item {
+	display: inline-flex;
+	align-items: center;
+}
+
+.career-card-desc {
+	font-size: 14.5px;
+	line-height: 24px;
+	color: #475569;
+	margin-bottom: 22px;
+	flex-grow: 1;
+}
+
+.career-card-desc p {
+	margin: 0;
+	color: #475569;
+	line-height: 24px;
+}
+
+.career-card-footer {
+	margin-top: auto;
+}
+
+.career-card-footer .careers-btn {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	border: 2px solid #0066ff !important;
+	color: #0066ff !important;
+	background-color: transparent !important;
+	border-radius: 25px !important;
+	padding: 6px 18px !important;
+	font-size: 15px !important;
+	font-weight: 600 !important;
+	text-decoration: none !important;
+	transition: all 0.3s ease !important;
+	cursor: pointer;
+	line-height: 1.4;
+}
+
+.career-card-footer .careers-btn:hover {
+	background-color: #0066ff !important;
+	color: #ffffff !important;
+	border-color: #0066ff !important;
+}
+
+.career-card-footer .careers-btn i {
+	font-size: 14px;
+	transition: transform 0.2s ease;
+}
+
+.career-card-footer .careers-btn:hover i {
+	transform: translateX(4px);
+}
+
+.ngd-no-careers {
+	text-align: center;
+	padding: 40px 20px;
+	color: #64748b;
+	font-size: 16px;
+	background: #f8fafc;
+	border-radius: 12px;
+	border: 1px dashed #cbd5e1;
+}
+
+@media (max-width: 991px) {
+	.career-openings-grid {
+		grid-template-columns: repeat(2, 1fr);
+		gap: 20px;
+	}
+	.career-card {
+		padding: 24px;
+	}
+	.career-card-title {
+		font-size: 20px !important;
+		line-height: 28px !important;
+	}
+}
+
+@media (max-width: 640px) {
+	.career-openings-grid {
+		grid-template-columns: 1fr;
+		gap: 16px;
+	}
+	.career-card {
+		padding: 20px;
+	}
+}

@@ -6,12 +6,13 @@ add_action( 'wp_enqueue_scripts', 'porto_child_css', 1001 );
 function porto_child_css() {
 	// porto child theme styles
 	wp_deregister_style( 'styles-child' );
-	wp_register_style( 'styles-child', esc_url( get_stylesheet_directory_uri() ) . '/style.css' );
+	$ver = file_exists( get_stylesheet_directory() . '/style.css' ) ? filemtime( get_stylesheet_directory() . '/style.css' ) : time();
+	wp_register_style( 'styles-child', esc_url( get_stylesheet_directory_uri() ) . '/style.css', array(), $ver );
 	wp_enqueue_style( 'styles-child' );
 
 	if ( is_rtl() ) {
 		wp_deregister_style( 'styles-child-rtl' );
-		wp_register_style( 'styles-child-rtl', esc_url( get_stylesheet_directory_uri() ) . '/style_rtl.css' );
+		wp_register_style( 'styles-child-rtl', esc_url( get_stylesheet_directory_uri() ) . '/style_rtl.css', array(), $ver );
 		wp_enqueue_style( 'styles-child-rtl' );
 	}
 }
@@ -410,3 +411,10 @@ remove_action( 'wp_head', 'wp_generator' );
 
 // 5. Disable XML-RPC (security + weight)
 add_filter( 'xmlrpc_enabled', '__return_false' );
+
+/*
+|--------------------------------------------------------------------------
+| Career Custom Post Type & Shortcodes
+|--------------------------------------------------------------------------
+*/
+require_once get_stylesheet_directory() . '/inc/career-cpt.php';
