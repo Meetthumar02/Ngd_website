@@ -1,0 +1,95 @@
+# ==========================================
+# WordPress Core
+# ==========================================
+
+/wp-admin/
+/wp-includes/
+
+
+# ==========================================
+# WordPress Generated / User Files
+# ==========================================
+
+/wp-content/uploads/
+/wp-content/cache/
+/wp-content/upgrade/
+/wp-content/backup-*/
+/wp-content/backups/
+/wp-content/updraft/
+/wp-content/ai1wm-backups/
+
+
+# ==========================================
+# WordPress Configuration / Secrets
+# ==========================================
+
+/wp-config.php
+/.env
+/.env.*
+
+
+# ==========================================
+# Database Backups
+# ==========================================
+
+*.sql
+*.sql.gz
+*.zip
+*.tar
+*.tar.gz
+
+
+# ==========================================
+# Logs / Temporary Files
+# ==========================================
+
+*.log
+*.tmp
+*.temp
+*.bak
+*.swp
+
+
+# ==========================================
+# Development / IDE
+# ==========================================
+
+/node_modules/
+/vendor/
+/.vscode/
+/.idea/
+
+
+# ==========================================
+# OS Files
+# ==========================================
+
+.DS_Store
+Thumbs.db
+desktop.ini
+
+
+# ==========================================
+# WordPress Cache / Temporary
+# ==========================================
+
+/wp-content/wflogs/
+/wp-content/debug.log
+
+
+# ==========================================
+# Backup Plugin Files
+# ==========================================
+
+/wp-content/ai1wm-backups/
+/wp-content/updraft/
+/wp-content/backup-db/
+/wp-content/backups-dup-lite/
+
+
+# ==========================================
+# Misc
+# ==========================================
+
+*.old
+*.orig

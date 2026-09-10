@@ -1,0 +1,562 @@
+<?php
+// phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound
+// Ensure the file is being accessed through the WordPress admin area
+if (!defined('ABSPATH')) {
+    die;
+}
+
+
+$form_mask_installed_date = get_option('fme-installDate');
+$conditional_fields_installed_date = get_option('cfef-installDate');
+$conditional_fields_pro_installed_date = get_option('cfefp-installDate');
+$country_code_installed_date = get_option('ccfef-installDate');
+
+// New: read stored oldest plugin (set once)
+$stored_oldest_plugin = get_option('oldest_plugin');
+
+$plugins_dates = [
+    'fim_plugin'  => $form_mask_installed_date,
+    'cfef_plugin' => $conditional_fields_installed_date,
+    'cfefp_plugin' => $conditional_fields_pro_installed_date,
+    'ccfef_plugin' => $country_code_installed_date,
+];
+
+$plugins_dates = array_filter($plugins_dates);
+
+$install_by_plugin = get_option('country-code-install-by');
+
+if(! empty( $install_by_plugin )){
+    $first_plugin = $install_by_plugin;
+}
+else if ( ! empty( $stored_oldest_plugin ) ) {
+    $first_plugin = $stored_oldest_plugin;
+} else {
+
+    if (!empty($plugins_dates)) {
+        asort($plugins_dates);
+        $first_plugin = key($plugins_dates);
+    } else {
+        $first_plugin = 'ccfef_plugin';
+    }
+
+    // Store it so it never changes on re-install
+    update_option('oldest_plugin', $first_plugin);
+}
+
+
+//phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound	
+function cfef_handle_unchecked_checkbox() {
+        $choice  = get_option('cpfm_opt_in_choice_cool_forms');
+        $options = get_option('cfef_usage_share_data');
+
+
+
+        if (!empty($choice)) {
+
+            // If the checkbox is unchecked (value is empty, false, or null)
+            if (empty($options)) {
+
+
+                // country field
+
+                wp_clear_scheduled_hook('ccfef_extra_data_update');
+
+
+
+                // conditional free
+
+                if(method_exists('cfef_cronjob', 'cfef_send_data')){
+                    wp_clear_scheduled_hook('cfef_extra_data_update');
+                }
+
+
+                // conditional pro
+
+                if(method_exists('cfefp_cronjob', 'cfefp_send_data')){
+
+                    wp_clear_scheduled_hook('cfefp_extra_data_update');
+                }
+
+
+                // form mask input
+
+                if(method_exists('fme_cronjob', 'fme_send_data')){
+
+                    wp_clear_scheduled_hook('fme_extra_data_update');
+                }
+
+
+                // input form mask
+
+                if(method_exists('Mask_Form_Elementor\mfe_cronjob', 'mfe_send_data')){
+
+                    wp_clear_scheduled_hook('mfe_extra_data_update');
+            
+                }
+
+
+            }
+
+            // If checkbox is checked (value is 'on' or any non-empty value)
+            else {
+
+
+                // country code
+
+                if (!wp_next_scheduled('ccfef_extra_data_update')) {
+                    if (class_exists('CCFEF_cronjob') && method_exists('CCFEF_cronjob', 'ccfef_send_data')) {
+                        CCFEF_cronjob::ccfef_send_data();
+                    }
+                    wp_schedule_event(time(), 'every_30_days', 'ccfef_extra_data_update');
+                }
+
+
+
+                // condition field pro
+
+                if(method_exists('cfefp_cronjob', 'cfefp_send_data')){
+
+                    
+                    if (!wp_next_scheduled('cfefp_extra_data_update')) {
+                            cfefp_cronjob::cfefp_send_data();
+                        wp_schedule_event(time(), 'every_30_days', 'cfefp_extra_data_update');
+                    }
+
+                }
+
+
+                // conditional fields free
+
+                if(method_exists('cfef_cronjob', 'cfef_send_data')){
+
+                    
+                    if (!wp_next_scheduled('cfef_extra_data_update')) {
+
+                        cfef_cronjob::cfef_send_data();
+                        wp_schedule_event(time(), 'every_30_days', 'cfef_extra_data_update');
+
+
+                    }
+
+                }
+
+
+                // form mask input
+
+                if(method_exists('fme_cronjob', 'fme_send_data')){
+
+                    
+                    if (!wp_next_scheduled('fme_extra_data_update')) {
+
+                        fme_cronjob::fme_send_data();
+                        wp_schedule_event(time(), 'every_30_days', 'fme_extra_data_update');
+
+
+                    }
+
+                }
+
+
+                // input form mask
+
+                if(method_exists('Mask_Form_Elementor\mfe_cronjob', 'mfe_send_data')){
+
+                    
+                    if (!wp_next_scheduled('mfe_extra_data_update')) {
+
+                        Mask_Form_Elementor\mfe_cronjob::mfe_send_data();
+                        wp_schedule_event(time(), 'every_30_days', 'mfe_extra_data_update');
+
+
+                    }
+
+                }
+
+
+
+            }
+        }
+}
+
+
+//phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound	
+function handle_form_submit() {
+    $pattern   = '/(<script|<\/script>|onerror=|onload=|eval\(|javascript:|SELECT |INSERT |DELETE |DROP |UPDATE |UNION )/i';
+    $skip_keys = array( 'cool_formkit_nonce', '_wp_http_referer', 'submit' );
+
+    // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Verified before this runs.
+    foreach ( $_POST as $key => $value ) {
+        if ( in_array( $key, $skip_keys, true ) || ! is_string( $value ) ) {
+            continue;
+        }
+
+        if ( preg_match( $pattern, wp_unslash( $value ) ) ) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+// Save API keys when the form is submitted
+if (isset($_SERVER['REQUEST_METHOD']) && sanitize_text_field(wp_unslash($_SERVER['REQUEST_METHOD'])) === 'POST') {
+
+    if ( ! current_user_can( 'manage_options' ) ) {
+        echo '<div class="notice notice-error is-dismissible"><p>' . esc_html__( 'You do not have permission to perform this action.', 'country-code-field-for-elementor-form' ) . '</p></div>';
+        return;
+    }
+
+
+    check_admin_referer('cool_formkit_save_api_keys', 'cool_formkit_nonce');
+
+    if(handle_form_submit() == false){
+        echo '<div class="notice notice-error is-dismissible"><p>' . esc_html__('Invalid Input.', 'country-code-field-for-elementor-form') . '</p></div>';
+
+    }else{
+
+    $cfef_usage_share_data = isset($_POST['cfef_usage_share_data']) ? sanitize_text_field(wp_unslash($_POST['cfef_usage_share_data'])) : '';
+
+    update_option( "cfef_usage_share_data",  $cfef_usage_share_data);
+
+
+    cfef_handle_unchecked_checkbox();
+    
+    echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__('Settings saved.', 'country-code-field-for-elementor-form') . '</p></div>';
+
+    }
+
+}
+
+// Get the current API key values
+$geo_provider          = get_option('cfkef_geo_provider', 'ipapi');
+
+$api_key_one = get_option('cfkef_country_code_api_key', '');
+
+$non_ipapi_api_key = get_option('cfkef_country_code_non_ipapi_api_key', '');
+
+// Get the Conditional Redirection key values
+$redirect_conditionally = get_option('cfefp_redirect_conditionally', 5);
+
+// Get Conditional Email key values
+$email_conditionally = get_option('cfefp_email_conditionally', 5);
+
+// Get CDN Image key values
+$cdn_image = get_option('cfefp_cdn_image', '');
+?>
+
+<div class="cfkef-settings-box">
+
+    <div>
+        <form method="post" action="" class="cool-formkit-form">
+            <div class="wrapper-header">
+                <div class="cfkef-save-all">
+                    <div class="cfkef-title-desc">
+                        <h2><?php esc_html_e('Cool FormKit Settings', 'country-code-field-for-elementor-form'); ?></h2>
+                    </div>
+                    <div class="cfkef-save-controls">
+                        <button type="submit" class="button button-primary"><?php esc_html_e('Save Changes', 'country-code-field-for-elementor-form'); ?></button>
+                    </div>
+                </div>
+            </div>
+            <div class="wrapper-body">
+
+            <p class="cool-formkit-description highlight-description"><?php esc_html_e('Configure the settings for conditional fields\' action after submit.', 'country-code-field-for-elementor-form'); ?></p>
+                <table class="form-table cool-formkit-table">
+                    <tr>
+                        <th scope="row" class="cool-formkit-table-th">
+                            <label for="cfefp_email_conditionally" class="cool-formkit-label"><?php esc_html_e('Number of Conditional Emails', 'country-code-field-for-elementor-form'); ?>
+                                <span class="cfkef-pro-feature">
+                                    <a href="https://coolformkit.com/pricing/?utm_source=<?php echo  esc_attr($first_plugin); ?>&utm_medium=inside&utm_campaign=get_pro&utm_content=settings_dashboard" target="_blank">
+                                    (Pro)
+                                    </a>
+                                </span>
+                            </label>
+                        </th>
+                        <td class="cool-formkit-table-td">
+                            <input type="number" id="cfefp_email_conditionally" name="cfefp_email_conditionally" min="4" value="<?php echo esc_attr($email_conditionally); ?>" class="regular-text cool-formkit-input" 
+                            disabled="disabled"/>
+                            <p class="description cool-formkit-description"><?php esc_html_e('Set the no. of conditional emails for the Elementor form.', 'country-code-field-for-elementor-form'); ?></p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row" class="cool-formkit-table-th">
+                            <label for="cfefp_redirect_conditionally" class="cool-formkit-label"><?php esc_html_e('Number of Conditional Redirections', 'country-code-field-for-elementor-form'); ?>
+                                <span class="cfkef-pro-feature">
+                                    <a href="https://coolformkit.com/pricing/?utm_source=<?php echo  esc_attr($first_plugin); ?>&utm_medium=inside&utm_campaign=get_pro&utm_content=settings_dashboard" target="_blank">
+                                    (Pro)
+                                    </a>
+                                </span>
+                            </label>
+                        </th>
+                        <td class="cool-formkit-table-td">
+                            <input type="number" id="cfefp_redirect_conditionally" name="cfefp_redirect_conditionally" min="4" value="<?php echo esc_attr($redirect_conditionally); ?>" class="regular-text cool-formkit-input" disabled="disabled"/>
+                            <p class="description cool-formkit-description"><?php esc_html_e('Set the no. of conditional redirects for the Elementor form.', 'country-code-field-for-elementor-form'); ?></p>
+                        </td>
+                    </tr>
+                </table>
+
+                <hr>
+
+                <p class="cool-formkit-description highlight-description"><?php esc_html_e('Configure the settings for country code and country field.', 'country-code-field-for-elementor-form'); ?></p>
+                <?php wp_nonce_field('cool_formkit_save_api_keys', 'cool_formkit_nonce'); ?>
+                <table class="form-table cool-formkit-table">
+        
+                    <tr id="api-selector">
+                        <th scope="row" class="cool-formkit-table-th">
+                            <label for="cfkef_geo_provider" class="cool-formkit-label"><?php esc_html_e('Geo-IP Provider', 'country-code-field-for-elementor-form'); ?>
+                                <span class="cfkef-pro-feature">
+                                    <a href="https://coolformkit.com/pricing/?utm_source=<?php echo  esc_attr($first_plugin); ?>&utm_medium=inside&utm_campaign=get_pro&utm_content=settings_dashboard" target="_blank">
+                                    (Pro)
+                                    </a>
+                                </span>
+                            </label>
+                        </th>
+                        <td class="cool-formkit-table-td">
+                            <select id="cfkef_geo_provider" name="cfkef_geo_provider" class="regular-text cool-formkit-input" disabled="disabled">
+                                <option value="ipapi"  <?php selected($geo_provider, 'ipapi'); ?> >ipapi.co</option>
+                                <option value="ipstack" <?php selected($geo_provider, 'ipstack'); ?>>ipstack.com</option>
+                                <option value="ipinfo" <?php selected($geo_provider, 'ipinfo'); ?>>ipinfo.io</option>
+                                <option value="geojs"  <?php selected($geo_provider, 'geojs');  ?>>geojs.io</option>
+                                <option value="ip-api"  <?php selected($geo_provider, 'ip-api');  ?>>ip-api.com</option>
+                            </select>
+                            <p class="description cool-formkit-description"><?php esc_html_e('Choose the Geo-IP service to use for auto-detecting country by IP.', 'country-code-field-for-elementor-form'); ?></p>
+                        </td>
+                    </tr>
+        
+                    <tr id="ipapi-row">
+                        <th scope="row" class="cool-formkit-table-th">
+                            <label for="cfkef_country_code_api_key" class="cool-formkit-label"><?php esc_html_e('Enter ipapi.co API Key', 'country-code-field-for-elementor-form'); ?>
+                                <span class="cfkef-pro-feature">
+                                    <a href="https://coolformkit.com/pricing/?utm_source=<?php echo  esc_attr($first_plugin); ?>&utm_medium=inside&utm_campaign=get_pro&utm_content=settings_dashboard" target="_blank">
+                                    (Pro)
+                                    </a>
+                                </span>
+                            </label>
+                        </th>
+                        <td class="cool-formkit-table-td">
+                                <input type="text" id="cfkef_country_code_api_key" name="cfkef_country_code_api_key" value="<?php echo esc_attr($api_key_one); ?>" class="regular-text cool-formkit-input" disabled="disabled"/>
+                                <p class="description cool-formkit-description"><?php esc_html_e('Auto-detect country code in the Tel field via IP address.', 'country-code-field-for-elementor-form'); ?></p>
+                                <p class="description cool-formkit-description">
+                                    <?php
+                                    echo wp_kses_post(
+                                        __(
+                                            'We use <a href="https://ipapi.co/" target="_blank">ipapi.co</a> to auto-detect the country code in the telephone field using the IP address. It offers 1000 free IP lookups per day. No API key is needed for low requests or if you are not using the auto-detect feature. However, please add an API key if you have a lot of users or purchase a premium plan.',
+                                            'country-code-field-for-elementor-form'
+                                        )
+                                    );
+                                    ?>
+                                </p>
+
+                        </td>
+                    </tr>
+                    <tr id="other-api-row">
+                        <th scope="row" class="cool-formkit-table-th">
+                            <label for="cfkef_country_code_non_ipapi_api_key" class="cool-formkit-label"><?php esc_html_e('Enter Geo API Key', 'country-code-field-for-elementor-form'); ?>
+                                <span class="cfkef-pro-feature">
+                                    <a href="https://coolformkit.com/pricing/?utm_source=<?php echo  esc_attr($first_plugin); ?>&utm_medium=inside&utm_campaign=get_pro&utm_content=settings_dashboard" target="_blank">
+                                    (Pro)
+                                    </a>
+                                </span>
+                            </label>
+                        </th>
+                        <td class="cool-formkit-table-td">
+                                <input type="text" id="cfkef_country_code_non_ipapi_api_key" name="cfkef_country_code_non_ipapi_api_key" value="<?php echo esc_attr($non_ipapi_api_key); ?>" class="regular-text cool-formkit-input" disabled="disabled"/>
+                                <p class="description cool-formkit-description">
+                                    <a
+                                        href="<?php echo esc_url( '' ); ?>"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        class="api-infromation"
+                                    >
+                                        <?php esc_html_e( 'Read More', 'country-code-field-for-elementor-form' ); ?>
+                                    </a>
+                                    <?php esc_html_e( 'About API', 'country-code-field-for-elementor-form' ); ?>
+                                </p>
+
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row" class="cool-formkit-table-th">
+                            <label class="cool-formkit-label"><?php esc_html_e('CDN Image', 'country-code-field-for-elementor-form'); ?>
+                                    <span class="cfkef-pro-feature">
+                                        <a href="https://coolformkit.com/pricing/?utm_source=<?php echo  esc_attr($first_plugin); ?>&utm_medium=inside&utm_campaign=get_pro&utm_content=settings_dashboard" target="_blank">
+                                        (Pro)
+                                    </a>
+                                </span>
+                            </label>
+                        </th>
+                        <td class="cool-formkit-table-td">
+                        <label class="cfkef-toggle-switch">
+                            <input type="checkbox" name="cfefp_cdn_image" class="cfkef-element-toggle" value="1" <?php checked($cdn_image); ?>
+                            disabled="disabled">
+                            <span class="cfkef-slider round"></span>
+                        
+                        </label>
+                        <p class="description cool-formkit-description">
+                            <?php esc_html_e(
+                                'In case the flags appear blurry, enable the option to load flag images directly from the CDN.',
+                                'country-code-field-for-elementor-form'
+                            ); ?>
+                        </p>
+
+                        </td>
+                    </tr>
+                </table>
+               
+                
+                <hr>
+                <h3><?php esc_html_e('Cloudflare Turnstile Settings', 'country-code-field-for-elementor-form'); ?></h3>
+                <p class="description cool-formkit-description">
+                    <?php
+                    echo wp_kses_post(
+                        __(
+                            'You can get your site key and secret key from here: <a href="https://www.cloudflare.com/en-au/application-services/products/turnstile/" target="_blank" rel="noopener noreferrer">https://www.cloudflare.com/en-au/application-services/products/turnstile/</a>',
+                            'country-code-field-for-elementor-form'
+                        )
+                    );
+                    ?>
+                </p>
+
+
+                <table class="form-table cool-formkit-table">
+                    <tr>
+                        <th scope="row" class="cool-formkit-table-th">
+                            <label for="cfefp_cloudflare_site_key" class="cool-formkit-label"><?php esc_html_e('Site Key', 'country-code-field-for-elementor-form'); ?>
+                                <span class="cfkef-pro-feature">
+                                    <a href="https://coolformkit.com/pricing/?utm_source=<?php echo  esc_attr($first_plugin); ?>&utm_medium=inside&utm_campaign=get_pro&utm_content=settings_dashboard" target="_blank">
+                                    (Pro)
+                                    </a>
+                                </span>
+                            </label>
+                        </th>
+                        <td class="cool-formkit-table-td site-key-td">
+                            <input type="password" id="cfefp_cloudflare_site_key" name="cfefp_cloudflare_site_key" min="4" value="<?php echo esc_attr(get_option('cfefp_cloudflare_site_key')); ?>" class="regular-text cool-formkit-input" disabled="disabled"/>    
+                            <span class="site-key-show-hide-icon">
+                                <img src="<?php echo esc_url(CCFEF_PLUGIN_URL . 'assets/images/hide.svg'); ?>" alt="show">
+                            </span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row" class="cool-formkit-table-th">
+                            <label for="cfefp_cloudflare_secret_key" class="cool-formkit-label"><?php esc_html_e('Secret Key', 'country-code-field-for-elementor-form'); ?>
+                                <span class="cfkef-pro-feature">
+                                    <a href="https://coolformkit.com/pricing/?utm_source=<?php echo  esc_attr($first_plugin); ?>&utm_medium=inside&utm_campaign=get_pro&utm_content=settings_dashboard" target="_blank">
+                                    (Pro)
+                                    </a>
+                                </span>
+                            </label>
+                        </th>
+
+
+                        <td class="cool-formkit-table-td secret-key-td">
+                            <input type="password" id="cfefp_cloudflare_secret_key" name="cfefp_cloudflare_secret_key" min="4" value="<?php echo esc_attr(get_option('cfefp_cloudflare_secret_key')); ?>" class="regular-text cool-formkit-input" disabled="disabled"/>
+                            <span class="secret-key-show-hide-icon">
+                                <img src="<?php echo esc_url(CCFEF_PLUGIN_URL . 'assets/images/hide.svg'); ?>" alt="show">
+                            </span>
+                        </td>
+                    </tr>
+                </table>
+                <hr>
+                <h3><?php esc_html_e('hCAPTCHA Settings', 'country-code-field-for-elementor-form'); ?></h3>
+                <p class="description cool-formkit-description">
+                <?php
+                    echo wp_kses_post(
+                        __(
+                            'To use <a href="https://www.hcaptcha.com/" target="_blank" rel="noopener noreferrer">hCaptcha</a>, please register <a href="https://www.hcaptcha.com/signup-interstitial" target="_blank" rel="noopener noreferrer">here</a> to get your site and secret keys.',
+                            'country-code-field-for-elementor-form'
+                        )
+                    );
+                    ?>
+                </p>
+
+
+                <table class="form-table cool-formkit-table">
+                    <tr>
+                        <th scope="row" class="cool-formkit-table-th">
+                            <label for="cfefp_h_site_key" class="cool-formkit-label"><?php esc_html_e('Site Key', 'country-code-field-for-elementor-form'); ?>
+                                <span class="cfkef-pro-feature">
+                                    <a href="https://coolformkit.com/pricing/?utm_source=<?php echo  esc_attr($first_plugin); ?>&utm_medium=inside&utm_campaign=get_pro&utm_content=settings_dashboard" target="_blank">
+                                    (Pro)
+                                    </a>
+                                </span>
+                            </label>
+                        </th>
+                        <td class="cool-formkit-table-td site-key-td">
+                            <input type="password" id="cfefp_h_site_key" name="cfefp_h_site_key" min="4" value="<?php echo esc_attr(get_option('cfefp_h_site_key')); ?>" class="regular-text cool-formkit-input" disabled="disabled"/>
+                                
+                            <span class="site-key-show-hide-icon-h-captcha">
+                                <img src="<?php echo esc_url(CCFEF_PLUGIN_URL . 'assets/images/hide.svg'); ?>" alt="show">
+                            </span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row" class="cool-formkit-table-th">
+                            <label for="cfefp_h_secret_key" class="cool-formkit-label"><?php esc_html_e('Secret Key', 'country-code-field-for-elementor-form'); ?>
+                                <span class="cfkef-pro-feature">
+                                    <a href="https://coolformkit.com/pricing/?utm_source=<?php echo esc_attr($first_plugin); ?>&utm_medium=inside&utm_campaign=get_pro&utm_content=settings_dashboard" target="_blank">
+                                    (Pro)
+                                    </a>
+                                </span>
+                            </label>
+                        </th>
+                        <td class="cool-formkit-table-td secret-key-td">
+                            <input type="password" id="cfefp_h_secret_key" name="cfefp_h_secret_key" min="4" value="<?php echo esc_attr(get_option('cfefp_h_secret_key')); ?>" class="regular-text cool-formkit-input" 
+                            disabled="disabled"/>
+                            <span class="secret-key-show-hide-icon-h-captcha">
+                                <img src="<?php echo esc_url(CCFEF_PLUGIN_URL . 'assets/images/hide.svg'); ?>" alt="show">
+                            </span>
+                        </td>
+                    </tr>
+                </table>
+                <hr>
+                            
+                <table class="form-table cool-formkit-table">
+                    <?php $cpfm_opt_in = esc_attr(get_option('cpfm_opt_in_choice_cool_forms',''));
+                                     if ($cpfm_opt_in) {
+        
+                                      $check_option =  esc_attr(get_option( 'cfef_usage_share_data',''));
+                                    
+                                    if($check_option == 'on'){
+                                        $checked = 'checked';
+                                    }else{
+                                        $checked = '';
+                                    }
+        
+                                    ?>
+                                    
+                                    <tr>
+                                        <th scope="row" class="cool-formkit-table-th">
+                                            <label for="cfef_usage_share_data" class="usage-share-data-label"><?php esc_html_e('Usage Share Data', 'country-code-field-for-elementor-form'); ?></label>
+                                        </th>
+                                        <td class="cool-formkit-table-td usage-share-data">
+                                            <input type="checkbox" id="cfef_usage_share_data" name="cfef_usage_share_data" value="on" <?php echo esc_attr($checked) ?>  class="regular-text cool-formkit-input"  />
+                                            <div class="description cool-formkit-description">
+                                            <?php esc_html_e('Help us make this plugin more compatible with your site by sharing non-sensitive site data.', 'country-code-field-for-elementor-form'); ?>
+                                            <a href="#" class="ccpw-see-terms">[<?php esc_html_e('See terms', 'country-code-field-for-elementor-form'); ?>]</a>
+        
+                                            <div id="termsBox" style="display: none; padding-left: 20px; margin-top: 10px; font-size: 12px; color: #999;">
+                                                <p>
+                                                    <?php esc_html_e('Opt in to receive email updates about security improvements, new features, helpful tutorials, and occasional special offers. We\'ll collect:', 'country-code-field-for-elementor-form'); ?>
+                                                    <a href="https://my.coolplugins.net/terms/usage-tracking/" target="_blank">Click Here</a>
+
+
+                                                </p>
+                                                <ul style="list-style-type: auto;">
+                                                    <li><?php esc_html_e('Your website home URL and WordPress admin email.', 'country-code-field-for-elementor-form'); ?></li>
+                                                    <li><?php esc_html_e('To check plugin compatibility, we will collect the following: list of active plugins and themes, server type, MySQL version, WordPress version, memory limit, site language and database prefix.', 'country-code-field-for-elementor-form'); ?></li>
+                                                </ul>
+                                            </div>
+                                        </div>
+        
+        
+                                        </td>
+                                    </tr>
+                                    <?php }?>
+                </table>
+                <div class="cool-formkit-submit" id="save" name="save">
+                    <?php submit_button(); ?>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>

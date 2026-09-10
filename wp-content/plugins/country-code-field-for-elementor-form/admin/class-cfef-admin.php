@@ -1,0 +1,499 @@
+<?php
+/**
+ * The admin-specific functionality of the plugin.
+ *
+ * @link       https://coolplugins.net
+ * @since      1.0.0
+ *
+ * @package    Cool_FormKit
+ * @subpackage Cool_FormKit/admin
+ */
+
+
+
+
+
+if (!defined('ABSPATH')) {
+    die;
+}
+
+/**
+ * The admin-specific functionality of the plugin.
+ *
+ * @since      1.0.0
+ * @package    Cool_FormKit
+ * @subpackage Cool_FormKit/admin
+ */
+if(!class_exists('CFEF_Admin')) {
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedClassFound
+class CFEF_Admin {
+
+    /**
+     * The instance of this class.
+     *
+     * @since    1.0.0
+     * @access   private
+     * @var      CFEF_Admin    $instance    The instance of this class.
+     */
+    private static $instance = null;
+
+    /**
+     * The ID of this plugin.
+     *
+     * @since    1.0.0
+     * @access   private
+     * @var      string    $plugin_name    The ID of this plugin.
+     */
+    private $plugin_name;
+
+    /**
+     * The version of this plugin.
+     *
+     * @since    1.0.0
+     * @access   private
+     * @var      string    $version    The current version of this plugin.
+     */
+    private $version;
+
+    /**
+     * Constructor to initialize the class and set its properties.
+     *
+     * @since    1.0.0
+     * @param    string    $plugin_name       The name of this plugin.
+     * @param    string    $version    The version of this plugin.
+     */
+    private function __construct($plugin_name, $version) {
+
+
+        $this->plugin_name = $plugin_name;
+        $this->version = $version;
+        add_action('admin_menu', array($this, 'add_plugin_admin_menu'),998);
+        add_action('admin_init', array($this, 'register_form_elements_settings'));
+        add_action('admin_enqueue_scripts', array($this, 'enqueue_admin_styles'));
+
+        add_action( 'wp_ajax_cfkef_plugin_install', array($this,'cfkef_plugin_install'));
+        add_action( 'wp_ajax_cfkef_plugin_activate', array($this,'cfkef_plugin_activate') );
+
+
+
+    }
+    /**
+     * Get the instance of this class.
+     *
+     * @since    1.0.0
+     * @param    string    $plugin_name       The name of this plugin.
+     * @param    string    $version    The version of this plugin.
+     * @return   CFEF_Admin    The instance of this class.
+     */
+    public static function get_instance($plugin_name, $version) {
+        if (null == self::$instance) {
+            self::$instance = new self($plugin_name, $version);
+        }
+        return self::$instance;
+    }
+
+
+    /**
+     * Get allowed plugin slugs and their init files.
+     * This whitelist prevents unauthorized plugin installation.
+     *
+     * @since    1.0.0
+     * @return   array    Array of allowed plugin slugs mapped to their init files.
+     */
+    private function get_allowed_plugins() {
+        return array(
+            'conditional-fields-for-elementor-form' => 'conditional-fields-for-elementor-form/class-conditional-fields-for-elementor-form.php',
+            'country-code-field-for-elementor-form' => 'country-code-field-for-elementor-form/country-code-field-for-elementor-form.php',
+            'form-masks-for-elementor' => 'form-masks-for-elementor/form-masks-for-elementor.php',
+        );
+    }
+
+    /**
+     * Validate if a plugin slug is allowed.
+     *
+     * @since    1.0.0
+     * @param    string    $slug    Plugin slug to validate.
+     * @return   bool    True if allowed, false otherwise.
+     */
+    private function is_allowed_plugin_slug( $slug ) {
+        $allowed_plugins = $this->get_allowed_plugins();
+        return isset( $allowed_plugins[ $slug ] );
+    }
+
+    /**
+     * Validate if a plugin init file is allowed.
+     *
+     * @since    1.0.0
+     * @param    string    $init_file    Plugin init file to validate.
+     * @return   bool    True if allowed, false otherwise.
+     */
+    private function is_allowed_plugin_init_file( $init_file ) {
+        $allowed_plugins = $this->get_allowed_plugins();
+        return in_array( $init_file, $allowed_plugins, true );
+    }
+
+    /**
+     * Secure plugin installation handler with whitelist validation.
+     *
+     * @since    1.0.0
+     */
+    public function cfkef_plugin_install() {
+
+        check_ajax_referer( 'updates', '_ajax_nonce' );
+        
+        if ( ! current_user_can( 'install_plugins' ) ) {
+            wp_send_json_error( array( 'message' => 'Permission denied' ) );
+        }
+
+        if ( empty( $_POST['slug'] ) ) {
+            wp_send_json_error( array( 'message' => 'Plugin slug missing' ) );
+        }
+
+        $plugin_slug = sanitize_text_field( wp_unslash( $_POST['slug'] ) );
+
+        // Security: Validate slug against whitelist
+        if ( ! $this->is_allowed_plugin_slug( $plugin_slug ) ) {
+            wp_send_json_error( array( 'message' => 'Unauthorized plugin. Only approved plugins can be installed.' ) );
+        }
+
+        // Include required WordPress files
+        require_once ABSPATH . 'wp-admin/includes/plugin-install.php';
+        require_once ABSPATH . 'wp-admin/includes/file.php';
+        require_once ABSPATH . 'wp-admin/includes/class-wp-upgrader.php';
+        require_once ABSPATH . 'wp-admin/includes/class-plugin-upgrader.php';
+
+        $api = plugins_api( 'plugin_information', array(
+            'slug'   => $plugin_slug,
+            'fields' => array(
+                'sections' => false,
+            ),
+        ) );
+
+        if ( is_wp_error( $api ) ) {
+            wp_send_json_error( array( 'message' => $api->get_error_message() ) );
+        }
+
+        // Double-check: Verify the API returned slug matches our whitelist
+        if ( ! $this->is_allowed_plugin_slug( $api->slug ) ) {
+            wp_send_json_error( array( 'message' => 'Unauthorized plugin. Only approved plugins can be installed.' ) );
+        }
+
+        $skin     = new WP_Ajax_Upgrader_Skin();
+        $upgrader = new Plugin_Upgrader( $skin );
+        $result   = $upgrader->install( $api->download_link );
+
+        if ( is_wp_error( $result ) ) {
+            wp_send_json_error( array( 'message' => $result->get_error_message() ) );
+        }
+
+        if ( is_wp_error( $skin->result ) ) {
+            wp_send_json_error( array( 'message' => $skin->result->get_error_message() ) );
+        }
+
+        if ( $skin->get_errors()->has_errors() ) {
+            wp_send_json_error( array( 'message' => $skin->get_error_messages() ) );
+        }
+
+        $parts = explode('-', $plugin_slug);
+		$two_parts_plugin_slug = implode('-', array_slice($parts, 0, 2));
+		update_option( $two_parts_plugin_slug . '-install-by', 'ccfef_plugin' );
+
+        wp_send_json_success( array( 'message' => 'Plugin installed successfully' ) );
+    }
+
+    /**
+     * Secure plugin activation handler with whitelist validation.
+     *
+     * @since    1.0.0
+     */
+    public function cfkef_plugin_activate(){
+        check_ajax_referer( 'cfkef_plugin_nonce', 'security' );
+        
+        if ( ! current_user_can( 'activate_plugins' ) ) {
+            wp_send_json_error( array( 'message' => 'Permission denied' ) );
+        }
+
+        if ( empty( $_POST['init'] ) ) {
+            wp_send_json_error( array( 'message' => 'Plugin init file missing' ) );
+        }
+
+        include_once ABSPATH . 'wp-admin/includes/plugin.php';
+
+        $init_file = sanitize_text_field( wp_unslash( $_POST['init'] ) );
+
+        // Security: Validate init file against whitelist
+        if ( ! $this->is_allowed_plugin_init_file( $init_file ) ) {
+            wp_send_json_error( array( 'message' => 'Unauthorized plugin. Only approved plugins can be activated.' ) );
+        }
+
+        $activate = activate_plugin( $init_file );
+
+        if ( is_wp_error( $activate ) ) {
+            wp_send_json_error( array( 'message' => $activate->get_error_message() ) );
+        }
+
+        wp_send_json_success( array( 'message' => 'Plugin activated successfully' ) );
+    } 
+
+    /**
+     * Add a menu item under Settings.
+     *
+     * @since    1.0.0
+     */
+    public function add_plugin_admin_menu() {
+        add_submenu_page(
+            'elementor',
+            __('Cool FormKit', 'country-code-field-for-elementor-form'),
+            __('Cool FormKit', 'country-code-field-for-elementor-form'),
+            'manage_options',
+            'cool-formkit',
+            array($this, 'display_plugin_admin_page')
+        );
+    }
+    /**
+     * Display the plugin admin page with tabs.
+     *
+     * @since    1.0.0
+     */
+    public function display_plugin_admin_page() {
+
+
+        $form_mask_installed_date = get_option( 'fme-installDate' );
+        $conditional_fields_installed_date = get_option( 'cfef-installDate' );
+        $conditional_fields_pro_installed_date = get_option( 'cfefp-installDate' );
+        $country_code_installed_date = get_option( 'ccfef-installDate' );
+
+        // New: read stored oldest plugin (set once)
+        $stored_oldest_plugin = get_option( 'oldest_plugin' );
+
+        $plugins_dates = [
+            'fim_plugin'  => $form_mask_installed_date,
+            'cfef_plugin' => $conditional_fields_installed_date,
+            'cfefp_plugin' => $conditional_fields_pro_installed_date,
+            'ccfef_plugin' => $country_code_installed_date,
+        ];
+
+        $plugins_dates = array_filter( $plugins_dates );
+
+        $install_by_plugin = get_option( 'country-code-install-by' );
+
+        if ( ! empty( $install_by_plugin ) ) {
+            $first_plugin = $install_by_plugin;
+        } elseif ( ! empty( $stored_oldest_plugin ) ) {
+            $first_plugin = $stored_oldest_plugin;
+        } else {
+            if ( ! empty( $plugins_dates ) ) {
+                asort( $plugins_dates );
+                $first_plugin = key( $plugins_dates );
+            } else {
+                $first_plugin = 'ccfef_plugin';
+            }
+
+            // Store it so it never changes on re-install
+            update_option( 'oldest_plugin', $first_plugin );
+        }
+
+
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+        $tab = isset($_GET['tab']) ? sanitize_text_field(wp_unslash($_GET['tab'])) : 'form-elements';
+        ?>
+        <div class="cfkef-wrapper">
+            <div class="cfk-header">
+                <div class="cfk-header-logo">
+                    <a href="?page=cool-formkit">
+                        <img src="<?php echo esc_url(CCFEF_PLUGIN_URL . 'assets/images/logo-cool-formkit.png'); ?>" alt="Cool FormKit Logo">
+                    </a>
+
+                    <span>Lite</span>
+                    <a class="button button-primary upgrade-pro-btn" target="_blank" href="https://coolformkit.com/pricing/?utm_source=<?php echo esc_attr($first_plugin);?>&utm_medium=inside&utm_campaign=get_pro&utm_content=dashboard">
+                        <img class="crown-diamond-pro" src="<?php echo esc_url(CCFEF_PLUGIN_URL . 'assets/images/crown-diamond-pro.png'); ?>" alt="Cool FormKit Logo">
+                        <?php esc_html_e('Upgrade To Pro', 'country-code-field-for-elementor-form'); ?>
+                    </a>
+                </div>
+                <div class="cfk-buttons">
+                    <p>Advanced Elementor Form Builder.</p>
+                    <a href="https://coolformkit.com/pricing/?utm_source=<?php echo esc_attr($first_plugin); ?>&utm_medium=inside&utm_campaign=get_pro&utm_content=setting_page_header" class="button" target="_blank">Get Cool FormKit</a>
+                </div>
+            </div>
+            <h2 class="nav-tab-wrapper">
+                <a href="?page=cool-formkit&tab=form-elements" class="nav-tab <?php echo esc_attr($tab) == 'form-elements' ? 'nav-tab-active' : ''; ?>"><?php esc_html_e('Form Elements', 'country-code-field-for-elementor-form'); ?></a>
+                <a href="?page=cool-formkit&tab=settings" class="nav-tab <?php echo esc_attr($tab) == 'settings' ? 'nav-tab-active' : ''; ?>"><?php esc_html_e('Settings', 'country-code-field-for-elementor-form'); ?></a>
+                <a href="?page=cool-formkit&tab=license" class="nav-tab <?php echo esc_attr($tab) == 'license' ? 'nav-tab-active' : ''; ?>"><?php esc_html_e('License', 'country-code-field-for-elementor-form'); ?></a>
+            </h2>
+            <div class="tab-content">
+                <?php
+                switch ($tab) {
+                    case 'form-elements':
+                        include_once 'views/form-elements.php';
+                        break;
+                    case 'settings':
+                        include_once 'views/settings.php';
+                        break;
+                    case 'license':
+                        include_once 'views/license.php';
+                        break;
+                }
+                ?>
+            </div>
+        </div>
+        <?php
+    }
+
+    public function add_to_cfkef_enabled_elements( $new_items ) {
+        $current = get_option( 'cfkef_enabled_elements', [] );
+        $merged  = array_unique( array_merge( $current, (array) $new_items ) );
+        update_option( 'cfkef_enabled_elements', $merged );
+    }
+
+    /**
+     * Register the settings for form elements.
+     *
+     * @since    1.0.0
+     */
+    public function register_form_elements_settings() {
+
+       
+
+        register_setting('cfkef_form_elements_group', 'cfkef_enabled_elements', array(
+            'type' => 'array',
+            'description' => 'Enabled Form Elements',
+            'sanitize_callback' => array($this, 'sanitize_form_elements'),
+            'default' => array()
+        ));
+        // phpcs:ignore PluginCheck.CodeAnalysis.SettingSanitization.register_settingMissing
+        register_setting( 'cfkef_form_elements_group', 'cfkef_toggle_all' );
+        // phpcs:ignore PluginCheck.CodeAnalysis.SettingSanitization.register_settingMissing
+        register_setting( 'cfkef_form_elements_group', 'country_code' );
+        // phpcs:ignore PluginCheck.CodeAnalysis.SettingSanitization.register_settingMissing
+        register_setting( 'cfkef_form_elements_group', 'conditional_logic' );
+        // phpcs:ignore PluginCheck.CodeAnalysis.SettingSanitization.register_settingMissing
+        register_setting( 'cfkef_form_elements_group', 'form_input_mask' );
+        // phpcs:ignore PluginCheck.CodeAnalysis.SettingSanitization.register_settingMissing
+        register_setting( 'cfkef_form_elements_group', 'input_mask' );
+
+        // phpcs:ignore PluginCheck.CodeAnalysis.SettingSanitization.register_settingMissing
+        register_setting( 'cfkef_form_elements_group', 'cfkef_enable_elementor_pro_form' );
+
+        if ( ! get_option( 'ccfef_plugin_initialized' ) ) {
+
+            $this->add_to_cfkef_enabled_elements( ['country_code'] );
+
+            update_option( 'ccfef_plugin_initialized', true );
+
+        } else {
+
+            if ( ! get_option( 'ccfef_migrate_done' ) ) {
+
+                $val = get_option( 'country_code', null );
+
+                if ( ! is_null( $val ) && $val ) {
+                    // Option exists AND is true
+                    $this->add_to_cfkef_enabled_elements( ['country_code'] );
+                }
+
+                update_option( 'ccfef_migrate_done', true );
+            }
+        }
+
+
+        /**
+         * 2. FME initialization / migration
+         */
+        if ( ! get_option( 'fme_plugin_initialized' ) ) {
+
+            $this->add_to_cfkef_enabled_elements( ['form_input_mask'] );
+
+            update_option( 'fme_plugin_initialized', true );
+
+        } else {
+
+            if ( ! get_option( 'fme_migrate_done' ) ) {
+
+                $val = get_option( 'form_input_mask', null );
+
+                if ( ! is_null( $val ) && $val ) {
+                    // Option exists AND is true
+                    $this->add_to_cfkef_enabled_elements( ['form_input_mask'] );
+                }
+
+                update_option( 'fme_migrate_done', true );
+            }
+        }
+
+
+        /**
+         * 3. MFE initialization / migration
+         */
+        if ( ! get_option( 'mfe_plugin_initialized' ) ) {
+
+            $this->add_to_cfkef_enabled_elements( ['input_mask'] );
+
+            update_option( 'mfe_plugin_initialized', true );
+
+        } else {
+
+            if ( ! get_option( 'mfe_migrate_done' ) ) {
+
+                $val = get_option( 'input_mask', null );
+
+                if ( ! is_null( $val ) && $val ) {
+                    // Option exists AND is true
+                    $this->add_to_cfkef_enabled_elements( ['input_mask'] );
+                }
+
+                update_option( 'mfe_migrate_done', true );
+            }
+        }
+    }
+
+    /**
+     * Sanitize form elements input.
+     *
+     * @param array $input The input array.
+     * @return array The sanitized array.
+     */
+    public function sanitize_form_elements($input) {
+        $valid = array();
+
+        $form_elements = array('conditional_logic', 'conditional_redirect', 'conditional_email', 'conditional_submit_button', 'range_slider', 'country_code', 'calculator_field', 'rating_field', 'signature_field', 'image_radio', 'radio_checkbox_styler', 'label_styler', 'select2','WYSIWYG','confirm_dialog','restrict_date','currency_field','month_week_field','form_input_mask', 'cloudflare_recaptcha', 'h_recaptcha','whatsapp_redirect');
+
+        if (is_array($input)) {
+            foreach ($input as $element) {
+                if (in_array($element, $form_elements)) {
+                    $valid[] = $element;
+                }
+            }
+        } 
+        return $valid;
+    }
+
+    /**
+     * Enqueue admin styles and scripts.
+     *
+     * @since    1.0.0
+     */
+    public function enqueue_admin_styles() {
+
+        wp_enqueue_style('cfkef-admin-global-style', CCFEF_PLUGIN_URL . 'assets/css/global-admin-style.css', array(), $this->version, 'all');
+
+        wp_enqueue_script('cfkef-admin-global-script', CCFEF_PLUGIN_URL . 'assets/js/global-admin.js', array('jquery'), $this->version, true);
+
+        //phpcs:ignore WordPress.Security.NonceVerification.Recommended
+        if (isset($_GET['page']) &&(strpos(sanitize_text_field(wp_unslash($_GET['page'])), 'cool-formkit') !== false || strpos(sanitize_text_field(wp_unslash($_GET['page'])), 'cfkef-entries') !== false)){
+            wp_enqueue_style('cfkef-admin-style', CCFEF_PLUGIN_URL . 'assets/css/admin-style.css', array(), $this->version, 'all');
+
+            wp_enqueue_style('cfkef-temp-style', CCFEF_PLUGIN_URL . 'assets/css/dashboard-style.css', array(), '1.0', 'all');
+
+            wp_enqueue_style('dashicons');
+            wp_enqueue_script('cfkef-admin-script', CCFEF_PLUGIN_URL . 'assets/js/admin-script.js', array('jquery'), $this->version, true);
+            
+            wp_localize_script( 'cfkef-admin-script', 'cfkef_plugin_vars', [
+                'nonce' => wp_create_nonce( 'cfkef_plugin_nonce' ),
+                'ajaxurl' => admin_url( 'admin-ajax.php' ),
+                'installNonce' => wp_create_nonce( 'updates' ),
+            ] );
+        }
+    }
+
+}
+}

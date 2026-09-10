@@ -1,0 +1,347 @@
+/*
+Theme Name: Porto Child
+Theme URI: https://www.portotheme.com/wordpress/porto
+Author: P-THEMES
+Author URI: https://www.portotheme.com/
+Description: Porto Responsive WordPress + eCommerce Theme.
+Version: 1.1
+Template: porto
+License: Commercial
+License URI: http://themeforest.net/licenses/regular_extended
+Tags: woocommerce, corporate, ecommerce, responsive, blue, black, green, white, light, dark, red, two-columns, three-columns, four-columns, left-sidebar, right-sidebar, fixed-layout, responsive-layout, custom-menu, editor-style, featured-images, flexible-header, full-width-template, microformats, post-formats, rtl-language-support, sticky-post, theme-options, translation-ready, accessibility-ready
+*/
+
+/*************** ADD YOUR CUSTOM CSS HERE  ***************/
+
+/* uber menu */
+
+.ubermenu-skin-minimal .ubermenu-submenu.ubermenu-submenu-drop {
+  border: none !important;
+}
+
+.ubermenu .ubermenu-item-type-column > .ubermenu-submenu-type-stack > .ubermenu-item-normal:first-child{
+	margin: 0px !important;
+	padding:0px !important;
+}
+
+.ubermenu .ubermenu-submenu-type-stack {
+	padding:0px !important;
+	margin: 0px !important;
+}
+
+
+/* global */
+
+@media (min-width: 992px) and (max-width: 1366px) { 
+	.e-con-inner {
+  		max-width: 1180px !important;
+	}
+	.container, .container-sm, .container-md, .container-lg {
+		max-width: 1180px !important;
+	}
+}
+
+/* stiky header effect */
+
+/* @media only screen and (max-width: 991px) {
+	 #header .header-main {
+		display:none !important;	
+	}
+}
+ */
+@media only screen and (max-width: 991px) {
+
+	/* 1) Header bar = ONE row, and acts as the positioning anchor for the
+	      drop-down menu panel.  (--flex-wrap-mobile:wrap was the stacker.) */
+	.elementor-element-afca9dc,
+	.elementor-5736 .elementor-element.elementor-element-afca9dc {
+		--display: flex !important;
+		--flex-direction: row !important;
+		--flex-wrap: nowrap !important;
+		--flex-wrap-mobile: nowrap !important;
+		--justify-content: space-between !important;
+		--align-items: center !important;
+		position: relative !important;
+	}
+	.elementor-element-afca9dc > .e-con-inner {
+		display: flex !important;
+		flex-direction: row !important;
+		flex-wrap: nowrap !important;
+		align-items: center !important;
+		justify-content: space-between !important;
+	}
+
+	/* 2) Logo: LEFT, natural size */
+	.elementor-element-afca9dc > .e-con-inner > .elementor-element-9b0186d {
+		flex: 0 0 auto !important;
+		width: auto !important;
+		max-width: 55% !important;
+		margin: 0 !important;
+		order: 1;
+	}
+
+	/* 3) Menu widget holds the ☰ toggle (stays in bar) + the nav (drops below) */
+	.elementor-element-afca9dc > .e-con-inner > .elementor-element-9732bcd {
+		flex: 0 0 auto !important;
+		width: auto !important;
+		margin: 0 0 0 auto !important;
+		position: static !important;
+		order: 2;
+	}
+	.elementor-element-9732bcd .ubermenu-responsive-toggle {
+		float: none !important;
+		margin: 0 !important;
+		display: inline-flex !important;
+		align-items: center;
+	}
+
+	/* 4) OPENED menu = FULL-WIDTH dropdown panel below the header bar */
+	.elementor-element-afca9dc .ubermenu.ubermenu-responsive {
+		position: absolute !important;
+		left: 0 !important;
+		right: 0 !important;
+		top: 100% !important;
+		width: 100% !important;
+		background: #fff !important;
+		box-shadow: 0 8px 16px rgba(0,0,0,.12);
+		z-index: 1000 !important;
+		text-align: left !important;
+	}
+	/* Scroll ONLY when the menu is open. Do NOT put max-height on the line
+	   above: it also matches the CLOSED state and overrides UberMenu's
+	   "max-height:0" (same specificity, loaded later), so the menu could
+	   open but never close. Scoping to :not(.ubermenu-responsive-collapse)
+	   lets UberMenu close it normally. */
+	.elementor-element-afca9dc .ubermenu.ubermenu-responsive:not(.ubermenu-responsive-collapse) {
+		max-height: 80vh !important;
+		overflow-y: auto !important;
+	}
+	/* every item full width, stacked, left aligned */
+	.elementor-element-afca9dc .ubermenu.ubermenu-responsive .ubermenu-nav,
+	.elementor-element-afca9dc .ubermenu.ubermenu-responsive > .ubermenu-nav > .ubermenu-item {
+		width: 100% !important;
+		text-align: left !important;
+		float: none !important;
+	}
+	.elementor-element-afca9dc .ubermenu.ubermenu-responsive .ubermenu-target {
+		justify-content: space-between !important;
+	}
+
+	/* 5) HIDE the Contact Us button on mobile */
+	.elementor-element-2a98e37 {
+		display: none !important;
+	}
+
+	/* 6) Remove the blue active-page underline on mobile. It's redundant now
+	      that the active item is shown in blue text, and it was the stray
+	      "line" that kept appearing. Hidden for every level-0 item here. */
+	.elementor-element-afca9dc .ngd-menu .ubermenu-responsive .ubermenu-nav > .ubermenu-item-level-0 > .ubermenu-target::after {
+		display: none !important;
+	}
+
+	/* 6b) Some breathing space at the TOP of the open menu (so AI Service and
+	       its corner image at the top aren't cramped against the panel edge). */
+	.elementor-element-afca9dc .ubermenu.ubermenu-responsive .ubermenu-nav {
+		padding-top: 16px !important;
+	}
+
+	/* 7) SIMPLIFY SUBMENUS ON MOBILE.
+	      IMPORTANT: everything here is scoped to .ubermenu-active, i.e. only
+	      a submenu that has actually been TAPPED OPEN. Closed submenus are
+	      left completely alone, so they stay collapsed and reserve NO space
+	      (the earlier version forced them into the layout -> empty gaps).
+	      When open, the desktop mega/tab layout is flattened into a clean
+	      full-width vertical list of links. Desktop (>=992px) is untouched. */
+
+	/* a) OPEN submenu + its columns/tabs/panels -> full width, in-flow, visible */
+	.elementor-element-afca9dc .ubermenu-responsive .ubermenu-item.ubermenu-active > .ubermenu-submenu,
+	.elementor-element-afca9dc .ubermenu-responsive .ubermenu-active .ubermenu-submenu,
+	.elementor-element-afca9dc .ubermenu-responsive .ubermenu-active .ubermenu-tabs,
+	.elementor-element-afca9dc .ubermenu-responsive .ubermenu-active .ubermenu-tabs-group,
+	.elementor-element-afca9dc .ubermenu-responsive .ubermenu-active .ubermenu-tabs-panels,
+	.elementor-element-afca9dc .ubermenu-responsive .ubermenu-active .ubermenu-tab-content-panel,
+	.elementor-element-afca9dc .ubermenu-responsive .ubermenu-active .ubermenu-item.ubermenu-column,
+	.elementor-element-afca9dc .ubermenu-responsive .ubermenu-active [class*="ubermenu-column-"] {
+		position: static !important;
+		width: 100% !important;
+		max-width: 100% !important;
+		min-width: 0 !important;
+		min-height: 0 !important;
+		float: none !important;
+		left: auto !important;
+		right: auto !important;
+		margin: 0 !important;
+		box-shadow: none !important;
+		border-radius: 0 !important;
+		border: none !important;
+		display: block !important;
+		visibility: visible !important;
+		opacity: 1 !important;
+		height: auto !important;
+		max-height: none !important;
+		overflow: visible !important;
+	}
+
+	/* b) strip heavy decoration inside open submenus */
+	.elementor-element-afca9dc .ubermenu-responsive .ubermenu-active .ubermenu-image,
+	.elementor-element-afca9dc .ubermenu-responsive .ubermenu-active .ubermenu-target-description {
+		display: none !important;
+	}
+
+	/* c) submenu links as clean, full-width, indented rows */
+	.elementor-element-afca9dc .ubermenu-responsive .ubermenu-active .ubermenu-submenu .ubermenu-target {
+		display: block !important;
+		width: 100% !important;
+		text-align: left !important;
+		padding: 11px 16px 11px 30px !important;
+		margin: 0 !important;
+		border: none !important;
+		border-radius: 0 !important;
+		font-weight: 500 !important;
+	}
+	.elementor-element-afca9dc .ubermenu-responsive .ubermenu-active .ubermenu-submenu .ubermenu-target-with-image .ubermenu-target-title {
+		padding-left: 0 !important;
+	}
+
+	/* 8a) BUG FIX - remove the big gap when a submenu is open.
+	       The gap comes from custom rules (margin-top:24px, padding) in
+	       <style id="wp-custom-css"> which loads AFTER this file, so equal
+	       specificity lost. Adding ".ngd-menu" makes these 7-class selectors
+	       (0,7,0) which OUTRANK the 6-class custom rules regardless of order. */
+	.elementor-element.elementor-element-afca9dc .ngd-menu .ubermenu-responsive .ubermenu-active > .ubermenu-submenu.ubermenu-submenu-drop,
+	.elementor-element.elementor-element-afca9dc .ngd-menu .ubermenu-responsive .ubermenu-active .ubermenu-submenu.ubermenu-submenu-drop {
+		margin-top: 0 !important;
+		margin-bottom: 0 !important;
+		padding-top: 2px !important;
+		padding-bottom: 2px !important;
+		min-height: 0 !important;
+		top: auto !important;
+		bottom: auto !important;
+	}
+
+	/* 8b) BUG FIX - close/down arrow placement. UberMenu hides the chevron
+	        when open, and the far-right absolute position left a big gap
+	        between the menu name and the arrow. Put the arrow INLINE, right
+	        after the text (small gap), and rotate it 180deg when open.
+	        NOTE: AI Service (.discover-ai) is EXCLUDED via :not(.discover-ai)
+	        so its custom box design is left completely untouched. */
+	.elementor-element-afca9dc .ngd-menu .ubermenu-responsive .ubermenu-nav > .ubermenu-item-level-0 > .ubermenu-target:not(.discover-ai) {
+		position: relative !important;
+		display: flex !important;
+		width: 100% !important;
+		align-items: center !important;
+		justify-content: space-between !important;
+		margin: 0 !important;
+		border-radius: 0 !important;
+	}
+	/* arrow pushed to the far RIGHT of the row (reference style) */
+	.elementor-element-afca9dc .ngd-menu .ubermenu-responsive .ubermenu-nav > .ubermenu-item-level-0 > .ubermenu-target:not(.discover-ai) > .ubermenu-sub-indicator {
+		display: inline-block !important;
+		position: static !important;
+		transform: none !important;
+		margin: 0 0 0 auto !important;
+		font-size: 14px !important;
+		line-height: 1 !important;
+		vertical-align: middle !important;
+		transition: transform .2s ease !important;
+	}
+	/* when the item is OPEN, rotate the chevron (points up = "close") */
+	.elementor-element-afca9dc .ngd-menu .ubermenu-responsive .ubermenu-nav > .ubermenu-item-level-0.ubermenu-active > .ubermenu-target:not(.discover-ai) > .ubermenu-sub-indicator {
+		display: inline-block !important;
+		transform: rotate(180deg) !important;
+	}
+
+	/* 8c) BUG FIX - when open, UberMenu shows BOTH the chevron AND a separate
+	        close element (.ubermenu-sub-indicator-close = the X). We keep the
+	        rotating chevron, so hide the X. 7-class selector outranks the
+	        plugin's (0,6,0) rule that makes it display:flex when active. */
+	.elementor-element-afca9dc .ngd-menu .ubermenu-responsive .ubermenu-nav .ubermenu-active > .ubermenu-target > .ubermenu-sub-indicator-close,
+	.elementor-element-afca9dc .ngd-menu .ubermenu-responsive .ubermenu-sub-indicator-close {
+		display: none !important;
+	}
+
+	/* 8d) AI Service: keep its box design 100% untouched, but when its
+	        dropdown is OPEN show an up-arrow (close) like the other items.
+	        UberMenu hides the chevron on active and we hid the X (8c), so
+	        nothing showed. This ONLY forces the chevron visible + rotated
+	        when active - it does NOT change the closed design or position.
+	        Three active-markers are covered in case UberMenu varies. */
+	.elementor-element-afca9dc .ngd-menu .ubermenu-responsive .ubermenu-item-level-0.ubermenu-active > .ubermenu-target.discover-ai > .ubermenu-sub-indicator,
+	.elementor-element-afca9dc .ngd-menu .ubermenu-responsive .ubermenu-item.ubermenu-active > .ubermenu-target.discover-ai > .ubermenu-sub-indicator,
+	.elementor-element-afca9dc .ngd-menu .ubermenu-responsive .ubermenu-active > .ubermenu-target.discover-ai > .ubermenu-sub-indicator {
+		display: inline-block !important;
+		transform: rotate(180deg) !important;
+	}
+
+	/* ============================================================
+	   9) REFERENCE-STYLE ACCORDION LOOK (visual only; behaviour stays
+	      the reliable expand-all). Right arrows + dividers + blue active
+	      + indented sub-levels. AI Service box stays untouched.
+	   ============================================================ */
+
+	/* a) divider line between top-level rows */
+	.elementor-element-afca9dc .ngd-menu .ubermenu-responsive .ubermenu-nav > .ubermenu-item-level-0 {
+		border-bottom: 1px solid #ebebeb !important;
+	}
+	/* divider line between open sub-rows */
+	.elementor-element-afca9dc .ngd-menu .ubermenu-responsive .ubermenu-active .ubermenu-submenu .ubermenu-item {
+		border-bottom: 1px solid #f2f2f2 !important;
+	}
+
+	/* b) blue highlight on the open/current item and its arrow */
+	.elementor-element-afca9dc .ngd-menu .ubermenu-responsive .ubermenu-item-level-0.ubermenu-active > .ubermenu-target,
+	.elementor-element-afca9dc .ngd-menu .ubermenu-responsive .ubermenu-current-menu-item > .ubermenu-target,
+	.elementor-element-afca9dc .ngd-menu .ubermenu-responsive .ubermenu-active > .ubermenu-target > .ubermenu-sub-indicator {
+		color: #0066ff !important;
+	}
+
+	/* c) indent each nested level so the hierarchy reads clearly */
+	.elementor-element-afca9dc .ngd-menu .ubermenu-responsive .ubermenu-active .ubermenu-item-level-1 > .ubermenu-target { padding-left: 30px !important; }
+	.elementor-element-afca9dc .ngd-menu .ubermenu-responsive .ubermenu-active .ubermenu-item-level-2 > .ubermenu-target { padding-left: 44px !important; }
+	.elementor-element-afca9dc .ngd-menu .ubermenu-responsive .ubermenu-active .ubermenu-item-level-3 > .ubermenu-target { padding-left: 58px !important; }
+	.elementor-element-afca9dc .ngd-menu .ubermenu-responsive .ubermenu-active .ubermenu-item-level-4 > .ubermenu-target { padding-left: 72px !important; }
+
+	/* d) nested items that have children: text left, arrow right (like reference) */
+	.elementor-element-afca9dc .ngd-menu .ubermenu-responsive .ubermenu-active .ubermenu-submenu .ubermenu-has-submenu-drop > .ubermenu-target {
+		display: flex !important;
+		align-items: center !important;
+		justify-content: space-between !important;
+	}
+	.elementor-element-afca9dc .ngd-menu .ubermenu-responsive .ubermenu-active .ubermenu-submenu .ubermenu-sub-indicator {
+		position: static !important;
+		margin: 0 0 0 auto !important;
+		right: auto !important;
+		top: auto !important;
+		transform: none !important;
+		font-size: 13px !important;
+	}
+
+	/* 10a) AI Service row (item 296477): give it a fixed min-height of 50px and
+	        vertically-center the box as a flex column, so there is NO empty
+	        space under the box and the row matches the others. The submenu
+	        (when open) still stacks below the box in the same column. */
+	.elementor-element-afca9dc .ngd-menu .ubermenu-responsive .ubermenu-nav > .ubermenu-item-296477 {
+		min-height: 60px !important;
+		display: flex !important;
+		flex-direction: column !important;
+		justify-content: center !important;
+		align-items: flex-start !important;
+	}
+
+	/* 10b) Remove the open/close SLIDE animation (the "text sliding up" effect
+	        when a dropdown collapses). Kill the max-height transition on the
+	        menu containers so it opens/closes instantly. The arrow-rotate
+	        transition is NOT in this list, so the chevron still animates. */
+	.elementor-element-afca9dc .ubermenu-responsive,
+	.elementor-element-afca9dc .ubermenu-responsive .ubermenu-nav,
+	.elementor-element-afca9dc .ubermenu-responsive .ubermenu-submenu,
+	.elementor-element-afca9dc .ubermenu-responsive .ubermenu-submenu-drop,
+	.elementor-element-afca9dc .ubermenu-responsive .ubermenu-tab-content-panel,
+	.elementor-element-afca9dc .ubermenu-responsive .ubermenu-item {
+		transition: none !important;
+	}
+}
+.qlwapp__container.qlwapp__container--rounded .qlwapp__button--bubble{
+	    margin-right: 7px;
+    margin-top: -182px !important;
+}
