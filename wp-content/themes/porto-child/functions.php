@@ -431,7 +431,7 @@ function ngd_white_label_enqueue_scripts() {
 }
 
 add_action( 'wp_enqueue_scripts', function() {
-    if ( is_page( 'white-label-mobile-app-development' ) || is_page( 'white-label-software-development' ) || is_page( 'white-label-agency' ) || is_page( 'white-label-app-development' ) || is_page_template( 'template-white-label-mobile-app.php' ) || is_page_template( 'template-white-label-software.php' ) || is_page_template( 'template-white-label-agency.php' ) || is_page_template( 'template-white-label-app-development.php' ) ) {
+    if ( is_page( 'white-label-mobile-app-development' ) || is_page( 'white-label-software-development' ) || is_page( 'white-label-software-development-services' ) || is_page( 'white-label-agency' ) || is_page( 'white-label-app-development' ) || is_page_template( 'template-white-label-mobile-app.php' ) || is_page_template( 'template-white-label-software.php' ) || is_page_template( 'template-white-label-software-dev.php' ) || is_page_template( 'template-white-label-agency.php' ) || is_page_template( 'template-white-label-app-development.php' ) ) {
         ngd_white_label_enqueue_scripts();
     }
 }, 30 );
