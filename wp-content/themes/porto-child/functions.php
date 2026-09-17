@@ -418,3 +418,31 @@ add_filter( 'xmlrpc_enabled', '__return_false' );
 |--------------------------------------------------------------------------
 */
 require_once get_stylesheet_directory() . '/inc/career-cpt.php';
+
+/*
+|--------------------------------------------------------------------------
+| White Label Landing Pages - Enqueue Assets & Elementor Preview
+|--------------------------------------------------------------------------
+*/
+function ngd_white_label_enqueue_scripts() {
+    $theme_uri = get_stylesheet_directory_uri();
+    wp_enqueue_style( 'ngd-white-label-agency-css', $theme_uri . '/css/white-label-agency.css', array(), '1.2.2' );
+    wp_enqueue_script( 'ngd-white-label-agency-js', $theme_uri . '/js/white-label-agency.js', array(), '1.2.2', true );
+}
+
+add_action( 'wp_enqueue_scripts', function() {
+    if ( is_page( 'white-label-mobile-app-development' ) || is_page( 'white-label-software-development' ) || is_page( 'white-label-agency' ) || is_page( 'white-label-app-development' ) || is_page_template( 'template-white-label-mobile-app.php' ) || is_page_template( 'template-white-label-software.php' ) || is_page_template( 'template-white-label-agency.php' ) || is_page_template( 'template-white-label-app-development.php' ) ) {
+        ngd_white_label_enqueue_scripts();
+    }
+}, 30 );
+
+// Enqueue inside Elementor live preview editor
+add_action( 'elementor/preview/enqueue_styles', function() {
+    $theme_uri = get_stylesheet_directory_uri();
+    wp_enqueue_style( 'ngd-white-label-agency-css', $theme_uri . '/css/white-label-agency.css', array(), '1.2.2' );
+} );
+
+add_action( 'elementor/preview/enqueue_scripts', function() {
+    $theme_uri = get_stylesheet_directory_uri();
+    wp_enqueue_script( 'ngd-white-label-agency-js', $theme_uri . '/js/white-label-agency.js', array(), '1.2.2', true );
+} );
